@@ -7,9 +7,12 @@ const IngredientForm = React.memo((props) => {
   const [enteredTitle, setEnteredTitle] = useState("");
   const [enteredAmount, setEnteredAmount] = useState("");
 
+  // 1- useState only inside functional component or other hooks
+  // 2- useState only at root level of your functional component, not inside functions, not inside if statements
+
   const submitHandler = (event) => {
     event.preventDefault();
-    // ...
+    props.onAddIngredient({ title: enteredTitle, amount: enteredAmount });
   };
 
   return (
