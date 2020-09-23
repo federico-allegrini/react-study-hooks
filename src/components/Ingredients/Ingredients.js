@@ -29,6 +29,15 @@ const Ingredients = () => {
     []
   );
 
+  useEffect(
+    () => {
+      console.log("Rendering Ingredients", userIngredients);
+    },
+    // In the second argument specify when the function have to run
+    // In this case only when "userIngredients" changes
+    [userIngredients]
+  );
+
   const addIngredientHandler = async (ingredient) => {
     const response = await fetch(
       "https://react-hooks-update-9d013.firebaseio.com/ingredients.json",
