@@ -1,12 +1,25 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useReducer, useState, useEffect, useCallback } from "react";
 
 import IngredientForm from "./IngredientForm";
 import IngredientList from "./IngredientList";
 import ErrorModal from "../UI/ErrorModal";
 import Search from "./Search";
 
+const ingredientReducer = (currentIngredients, action) => {
+  switch (action.type) {
+    case "SET":
+      return action.ingredients;
+    case "ADD":
+      return [...currentIngredients, action.ingredient];
+    case "DELETE":
+      return currentIngredients.filter((ing) => ing.id !== action.id);
+    default:
+      throw new Error("Should not get there!");
+  }
+};
+
 const Ingredients = () => {
-  const [userIngredients, setUserIngredients] = useState([]);
+  const [userIngredients, dispatch] = useReducer(ingredientReducer, []);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState();
 
@@ -20,8 +33,8 @@ const Ingredients = () => {
   );
 
   // useCallback caches our function, when component re-render the function will not be recreated
-  const filteredIngredientsHandler = useCallback((loadedIngredients) => {
-    setUserIngredients(loadedIngredients);
+  const filteredIngredientsHandler = useCallback((filteredIngredients) => {
+    dispatch({ type: "SET", ingredients: filteredIngredients });
   }, []);
 
   const addIngredientHandler = async (ingredient) => {
@@ -34,12 +47,12 @@ const Ingredients = () => {
         headers: { "Content-Type": "application/json" },
       }
     );
-    setIsLoading(false);
     const responseData = await response.json();
-    setUserIngredients((prevIngredients) => [
-      ...prevIngredients,
-      { id: responseData.name, ...ingredient },
-    ]);
+    setIsLoading(false);
+    dispatch({
+      type: "ADD",
+      ingredient: { id: responseData.name, ...ingredient },
+    });
   };
 
   const removeIngredientHandler = async (ingredientId) => {
@@ -50,9 +63,7 @@ const Ingredients = () => {
         { method: "DELETE" }
       );
       setIsLoading(false);
-      setUserIngredients((prevIngredients) =>
-        prevIngredients.filter((ingredient) => ingredient.id !== ingredientId)
-      );
+      dispatch({ type: "DELETE", id: ingredientId });
     } catch (error) {
       setError("Something went wrong: " + error.message);
     }
