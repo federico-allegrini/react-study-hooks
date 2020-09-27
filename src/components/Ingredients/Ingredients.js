@@ -1,4 +1,4 @@
-import React, { useReducer, useState, useEffect, useCallback } from "react";
+import React, { useReducer, useEffect, useCallback } from "react";
 
 import IngredientForm from "./IngredientForm";
 import IngredientList from "./IngredientList";
@@ -18,10 +18,27 @@ const ingredientReducer = (currentIngredients, action) => {
   }
 };
 
+const httpReducer = (curHttpState, action) => {
+  switch (action.type) {
+    case "SEND":
+      return { loading: true, error: null };
+    case "RESPONSE":
+      return { ...curHttpState, loading: false };
+    case "ERROR":
+      return { loading: false, error: action.errorMessage };
+    case "CLEAR":
+      return { ...curHttpState, error: null };
+    default:
+      throw new Error("Should not get there!");
+  }
+};
+
 const Ingredients = () => {
   const [userIngredients, dispatch] = useReducer(ingredientReducer, []);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState();
+  const [httpState, dispatchHttp] = useReducer(httpReducer, {
+    loading: false,
+    error: null,
+  });
 
   useEffect(
     () => {
@@ -38,7 +55,7 @@ const Ingredients = () => {
   }, []);
 
   const addIngredientHandler = async (ingredient) => {
-    setIsLoading(true);
+    dispatchHttp({ type: "SEND" });
     const response = await fetch(
       "https://react-hooks-update-9d013.firebaseio.com/ingredients.json",
       {
@@ -48,7 +65,7 @@ const Ingredients = () => {
       }
     );
     const responseData = await response.json();
-    setIsLoading(false);
+    dispatchHttp({ type: "RESPONSE" });
     dispatch({
       type: "ADD",
       ingredient: { id: responseData.name, ...ingredient },
@@ -56,33 +73,35 @@ const Ingredients = () => {
   };
 
   const removeIngredientHandler = async (ingredientId) => {
-    setIsLoading(true);
+    dispatchHttp({ type: "SEND" });
     try {
       await fetch(
         `https://react-hooks-update-9d013.firebaseio.com/ingredients/${ingredientId}.json`,
         { method: "DELETE" }
       );
-      setIsLoading(false);
+      dispatchHttp({ type: "RESPONSE" });
       dispatch({ type: "DELETE", id: ingredientId });
     } catch (error) {
-      setError("Something went wrong: " + error.message);
+      dispatchHttp({
+        type: "ERROR",
+        errorMessage: "Something went wrong: " + error.message,
+      });
     }
   };
 
   const clearError = () => {
-    //When there are two or more setState int he same block, react batch the setState in one syncronous setState
-    //Re-render is trigger "only once"
-    setError(null);
-    setIsLoading(false);
+    dispatchHttp({ type: "CLEAR" });
   };
 
   return (
     <div className="App">
-      {error && <ErrorModal onClose={clearError}>{error}</ErrorModal>}
+      {httpState.error && (
+        <ErrorModal onClose={clearError}>{httpState.error}</ErrorModal>
+      )}
 
       <IngredientForm
         onAddIngredient={addIngredientHandler}
-        loading={isLoading}
+        loading={httpState.loading}
       />
 
       <section>
