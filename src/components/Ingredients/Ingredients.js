@@ -1,4 +1,4 @@
-import React, { useReducer, useEffect, useCallback } from "react";
+import React, { useReducer, useEffect, useCallback, useMemo } from "react";
 
 import IngredientForm from "./IngredientForm";
 import IngredientList from "./IngredientList";
@@ -54,7 +54,7 @@ const Ingredients = () => {
     dispatch({ type: "SET", ingredients: filteredIngredients });
   }, []);
 
-  const addIngredientHandler = async (ingredient) => {
+  const addIngredientHandler = useCallback(async (ingredient) => {
     dispatchHttp({ type: "SEND" });
     const response = await fetch(
       "https://react-hooks-update-9d013.firebaseio.com/ingredients.json",
@@ -70,13 +70,15 @@ const Ingredients = () => {
       type: "ADD",
       ingredient: { id: responseData.name, ...ingredient },
     });
-  };
+  }, []);
 
-  const removeIngredientHandler = async (ingredientId) => {
+  // useCallback do not permit React to recreate the function at every render cycle
+  // Is based on second argument dependecies, if is [] never recreate the function
+  const removeIngredientHandler = useCallback(async (ingredientId) => {
     dispatchHttp({ type: "SEND" });
     try {
       await fetch(
-        `https://react-hooks-update-9d013.firebaseio.com/ingredients/${ingredientId}.json`,
+        `https://react-hooks-update-9d013.firebaseio.com/ingredients/${ingredientId}.jon`,
         { method: "DELETE" }
       );
       dispatchHttp({ type: "RESPONSE" });
@@ -87,11 +89,22 @@ const Ingredients = () => {
         errorMessage: "Something went wrong: " + error.message,
       });
     }
-  };
+  }, []);
 
-  const clearError = () => {
+  const clearError = useCallback(() => {
     dispatchHttp({ type: "CLEAR" });
-  };
+  }, []);
+
+  // useMemo is an alternative of React.Memo
+  // Do not recreate the component at every rerende cycle based on dependencies (inside second argument [])
+  const ingredientList = useMemo(() => {
+    return (
+      <IngredientList
+        ingredients={userIngredients}
+        onRemoveItem={removeIngredientHandler}
+      />
+    );
+  }, [userIngredients, removeIngredientHandler]);
 
   return (
     <div className="App">
@@ -106,10 +119,7 @@ const Ingredients = () => {
 
       <section>
         <Search onLoadIngredients={filteredIngredientsHandler} />
-        <IngredientList
-          ingredients={userIngredients}
-          onRemoveItem={removeIngredientHandler}
-        />
+        {ingredientList}
       </section>
     </div>
   );
