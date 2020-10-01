@@ -28,6 +28,7 @@ const Ingredients = () => {
     sendRequest,
     reqExtra,
     reqIndentifier,
+    clear,
   } = useHttp();
 
   useEffect(() => {
@@ -49,15 +50,18 @@ const Ingredients = () => {
     dispatch({ type: "SET", ingredients: filteredIngredients });
   }, []);
 
-  const addIngredientHandler = useCallback(async (ingredient) => {
-    sendRequest(
-      "https://react-hooks-update-9d013.firebaseio.com/ingredients.json",
-      "POST",
-      JSON.stringify(ingredient),
-      ingredient,
-      "ADD_INGREDIENT"
-    );
-  }, []);
+  const addIngredientHandler = useCallback(
+    async (ingredient) => {
+      sendRequest(
+        "https://react-hooks-update-9d013.firebaseio.com/ingredients.json",
+        "POST",
+        JSON.stringify(ingredient),
+        ingredient,
+        "ADD_INGREDIENT"
+      );
+    },
+    [sendRequest]
+  );
 
   // useCallback do not permit React to recreate the function at every render cycle
   // Is based on second argument dependecies, if is [] never recreate the function
@@ -74,10 +78,6 @@ const Ingredients = () => {
     [sendRequest]
   );
 
-  const clearError = useCallback(() => {
-    // dispatchHttp({ type: "CLEAR" });
-  }, []);
-
   // useMemo is an alternative of React.Memo
   // Do not recreate the component at every rerende cycle based on dependencies (inside second argument [])
   const ingredientList = useMemo(() => {
@@ -91,7 +91,7 @@ const Ingredients = () => {
 
   return (
     <div className="App">
-      {error && <ErrorModal onClose={clearError}>{error}</ErrorModal>}
+      {error && <ErrorModal onClose={clear}>{error}</ErrorModal>}
 
       <IngredientForm
         onAddIngredient={addIngredientHandler}
