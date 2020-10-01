@@ -21,16 +21,28 @@ const ingredientReducer = (currentIngredients, action) => {
 
 const Ingredients = () => {
   const [userIngredients, dispatch] = useReducer(ingredientReducer, []);
-  const { isLoading, data, error, sendRequest } = useHttp();
+  const {
+    isLoading,
+    data,
+    error,
+    sendRequest,
+    reqExtra,
+    reqIndentifier,
+  } = useHttp();
 
-  useEffect(
-    () => {
-      console.log("Rendering Ingredients", userIngredients);
-    },
-    // In the second argument specify when the function have to run
-    // In this case only when "userIngredients" changes
-    [userIngredients]
-  );
+  useEffect(() => {
+    if (isLoading || error) return;
+    switch (reqIndentifier) {
+      case "REMOVE_INGREDIENT":
+        dispatch({ type: "DELETE", id: reqExtra });
+        break;
+      case "ADD_INGREDIENT":
+        dispatch({
+          type: "ADD",
+          ingredient: { id: data.name, ...reqExtra },
+        });
+    }
+  }, [data, reqExtra, reqIndentifier, isLoading, error]);
 
   // useCallback caches our function, when component re-render the function will not be recreated
   const filteredIngredientsHandler = useCallback((filteredIngredients) => {
@@ -38,21 +50,13 @@ const Ingredients = () => {
   }, []);
 
   const addIngredientHandler = useCallback(async (ingredient) => {
-    // dispatchHttp({ type: "SEND" });
-    const response = await fetch(
+    sendRequest(
       "https://react-hooks-update-9d013.firebaseio.com/ingredients.json",
-      {
-        method: "POST",
-        body: JSON.stringify(ingredient),
-        headers: { "Content-Type": "application/json" },
-      }
+      "POST",
+      JSON.stringify(ingredient),
+      ingredient,
+      "ADD_INGREDIENT"
     );
-    const responseData = await response.json();
-    // dispatchHttp({ type: "RESPONSE" });
-    dispatch({
-      type: "ADD",
-      ingredient: { id: responseData.name, ...ingredient },
-    });
   }, []);
 
   // useCallback do not permit React to recreate the function at every render cycle
@@ -61,7 +65,10 @@ const Ingredients = () => {
     async (ingredientId) => {
       sendRequest(
         `https://react-hooks-update-9d013.firebaseio.com/ingredients/${ingredientId}.json`,
-        "DELETE"
+        "DELETE",
+        null,
+        ingredientId,
+        "REMOVE_INGREDIENT"
       );
     },
     [sendRequest]
